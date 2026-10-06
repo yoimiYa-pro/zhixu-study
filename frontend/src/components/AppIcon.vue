@@ -17,6 +17,7 @@ const paths: Record<string, string[]> = {
   maximize: ['M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5'],
   minimize: ['M3 8h5V3M21 8h-5V3M8 21v-5H3M16 21v-5h5'],
   'arrow-up': ['M12 20V4m-6 6 6-6 6 6'],
+  'arrow-left': ['M20 12H4m6-6-6 6 6 6'],
   'arrow-right': ['M4 12h16m-6-6 6 6-6 6'],
   home: ['M3 10 12 3l9 7', 'M5 9v12h5v-7h4v7h5V9'],
   book: ['M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H4z', 'M13 7a3 3 0 0 1 3-3h5v15h-5a3 3 0 0 0-3 2'],
