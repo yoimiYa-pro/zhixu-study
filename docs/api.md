@@ -18,6 +18,7 @@
 | GET | /api/dashboard | 实际统计、任务、复习与今日积累 |
 | GET / POST | /api/questions | q / type / mistakesOnly / page / pageSize；创建 |
 | GET / PUT / DELETE | /api/questions/{id} | 查询、完整修改、软删除 |
+| POST | /api/questions/{id}/analyze | 开始或重新讲解，返回 202 与题目；当前版本已有等待或处理中的分析时复用任务 |
 | PATCH | /api/questions/{id}/mistake | reason 确认错因 |
 | POST | /api/questions/{id}/similar | 真正的向量相似题 |
 | GET / POST | /api/knowledge-points | 节点和掌握度；添加 |
@@ -65,6 +66,8 @@
 可选 userAnswer / explanation / knowledgePoints / source / year / region / mistake / mistakeReason / timeSpent。创建时 clientRequestId 是幂等 UUID。
 
 错因：知识盲区、理解错误、审题错误、计算错误、方法错误、粗心、时间不足、记忆错误；尚未确认保留“未确认”。AI 建议不会覆盖用户确认。软删除保留学习和复习历史。
+
+重新讲解保留题干、选项、答案、手动参考解析、已确认错因与复习计划；旧 AI 分析在新分析通过校验前继续可见。重新讲解生成新题目版本，过期任务不能覆盖结果。AI 分析文字字段支持 Markdown 与 LaTeX 行间公式，仍通过 JSON Schema 校验；页面按思路、步骤、答案核对、快速方法与易错点展示，纯文本旧分析中的常见算式自动分行。
 
 复习 result 为 CORRECT / INCORRECT / SKIP，confidence 1–5，timeSpent 0–86400 秒。选择题由服务端根据实际答案判断，申论自评。相同 requestId 不重复计数。
 

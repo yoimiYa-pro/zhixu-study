@@ -68,6 +68,17 @@ public class QuestionService {
         if(mistake) tasks.enqueue("ANALYZE_QUESTION",id,payload,"analysis:question:"+id+":"+revision);
         tasks.enqueue("INDEX_DOCUMENT",id,payload,"index:question:"+id+":"+revision);
     }
+    @Transactional public Map<String,Object> analyze(UUID id) {
+        var row=db.one("select revision from questions where id=? and deleted_at is null for update",id);
+        int revision=((Number)row.get("revision")).intValue();
+        // Serialize repeated clicks and keep the previous explanation while the
+        // replacement runs. A new revision also rejects older in-flight results.
+        if(db.count("select count(*) from ai_tasks where reference_id=? and kind='ANALYZE_QUESTION' and status in ('PENDING','PROCESSING') and payload_json->>'revision'=?",id,Integer.toString(revision))>0) return get(id);
+        int nextRevision=revision+1;
+        db.update("update questions set revision=?,updated_at=now() where id=?",nextRevision,id);
+        tasks.enqueue("ANALYZE_QUESTION",id,Map.of("revision",nextRevision,"entityType","question"),"analysis:question:"+id+":"+nextRevision);
+        return get(id);
+    }
     @Transactional public void delete(UUID id) {
         db.one("select id from questions where id=?",id);
         db.update("update questions set deleted_at=now(),updated_at=now() where id=? and deleted_at is null",id);
