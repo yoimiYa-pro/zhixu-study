@@ -1,0 +1,148 @@
+name: civil-service-ai
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-civil_study}
+      POSTGRES_USER: ${POSTGRES_USER:-civil_study}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/init_env.py first}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [study]
+
+  redis:
+    image: redis:7.4-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Run scripts/init_env.py first}
+    command: [sh, -c, 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: [redis-data:/data]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [study]
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?Run scripts/init_env.py first}
+      QDRANT__TELEMETRY_DISABLED: "true"
+    ports: ["127.0.0.1:6333:6333"]
+    volumes: [qdrant-data:/qdrant/storage]
+    restart: unless-stopped
+    networks: [study]
+
+  backend-java:
+    profiles: [app]
+    build:
+      context: ./backend-java
+      network: ${BUILD_NETWORK:-default}
+    env_file: .env
+    environment:
+      SERVER_PORT: 8080
+      TZ: ${TZ:-Asia/Shanghai}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-civil_study}
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://ai-service:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/api/health]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [study]
+
+  ai-service:
+    profiles: [app]
+    build:
+      context: ./ai-service
+      network: ${BUILD_NETWORK:-default}
+    env_file: .env
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      QDRANT_URL: http://qdrant:6333
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks: [study]
+
+  frontend:
+    profiles: [app]
+    build:
+      context: ./frontend
+      network: ${BUILD_NETWORK:-default}
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8088}:80"
+    depends_on:
+      backend-java:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [study]
+
+  egress-relay:
+    profiles: [egress]
+    build:
+      context: ./deploy/egress
+    environment:
+      EGRESS_BIND_HOST: ${EGRESS_BIND_HOST:-127.0.0.1}
+      EGRESS_ALLOWED_CIDR: ${EGRESS_ALLOWED_CIDR:-127.0.0.1/32}
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:?Run scripts/init_env.py first}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://api.openai.com/v1}
+      NEWS_ALLOWED_HOSTS: ${NEWS_ALLOWED_HOSTS:-www.gov.cn,gov.cn,www.news.cn,news.cn,www.people.com.cn,people.com.cn}
+    network_mode: host
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import os, socket; s=socket.create_connection((os.environ['EGRESS_BIND_HOST'], 17890), timeout=3); s.close()"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  java-test:
+    profiles: [tools]
+    image: maven:3.9.9-eclipse-temurin-21
+    user: "1000:1000"
+    env_file: .env
+    environment:
+      MAVEN_CONFIG: /work/.local/m2
+      SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/${POSTGRES_DB:-civil_study}
+      REDIS_HOST: 127.0.0.1
+      AI_SERVICE_URL: http://127.0.0.1:8011
+    volumes: [".:/work"]
+    working_dir: /work/backend-java
+    command: [mvn, --batch-mode, --no-transfer-progress, -Dmaven.repo.local=/work/.local/m2, verify]
+    network_mode: host
+
+networks:
+  study:
+
+volumes:
+  postgres-data:
+  redis-data:
+  qdrant-data:

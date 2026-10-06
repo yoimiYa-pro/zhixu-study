@@ -1,0 +1,60 @@
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+spring:
+  application:
+    name: civil-study
+  jackson:
+    time-zone: ${TZ:Asia/Shanghai}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/civil_study}
+    username: ${POSTGRES_USER:civil_study}
+    password: ${POSTGRES_PASSWORD:}
+    hikari:
+      connection-timeout: 5000
+      maximum-pool-size: 8
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: 2s
+      timeout: 2s
+  flyway:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+logging:
+  level:
+    root: INFO
+    cn.study: INFO
+auth:
+  username: ${ADMIN_USERNAME:admin}
+  password-hash: ${ADMIN_PASSWORD_HASH:}
+  jwt-secret: ${JWT_SECRET:}
+  access-minutes: ${ACCESS_TOKEN_MINUTES:30}
+  refresh-days: ${REFRESH_TOKEN_DAYS:7}
+  cookie-secure: ${COOKIE_SECURE:false}
+app:
+  timezone: ${TZ:Asia/Shanghai}
+ai:
+  service-url: ${AI_SERVICE_URL:http://localhost:8000}
+  max-attempts: ${AI_MAX_ATTEMPTS:3}
+  worker-enabled: ${AI_WORKER_ENABLED:true}
+  poll-ms: ${AI_POLL_MS:5000}
+  lease-seconds: ${AI_LEASE_SECONDS:300}
+scheduler:
+  enabled: ${SCHEDULER_ENABLED:true}
+  daily-plan-cron: ${DAILY_PLAN_CRON:0 0 5 * * *}
+  news-fetch-cron: ${NEWS_FETCH_CRON:0 0 6 * * *}
+  news-analyze-cron: ${NEWS_ANALYZE_CRON:0 30 6 * * *}
+  review-check-cron: ${REVIEW_CHECK_CRON:0 0 20 * * *}
+  weekly-report-cron: ${WEEKLY_REPORT_CRON:0 0 20 * * SUN}
