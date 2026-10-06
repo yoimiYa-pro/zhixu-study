@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
 import 'katex/dist/katex.min.css'
 
-const props = defineProps<{ content: string }>()
-const rendered = computed(() => renderMarkdown(props.content))
+const props = defineProps<{ content: string; displayEquations?: boolean }>()
+const rendered = computed(() => renderMarkdown(props.content, { displayEquations: props.displayEquations }))
 </script>
 
 <template>
@@ -48,6 +48,7 @@ const rendered = computed(() => renderMarkdown(props.content))
 .markdown-content :deep(tr:last-child td) { border-bottom:0; }
 .markdown-content :deep(tbody tr:nth-child(even)) { background:color-mix(in srgb,var(--soft) 45%,var(--panel)); }
 .markdown-content :deep(.math-block) { max-width:100%; overflow-x:auto; padding:14px 18px; margin:1.2em 0; background:var(--soft); border:1px solid var(--border); border-radius:9px; }
+.markdown-content :deep(.math-equation) { display:block; }
 .markdown-content :deep(.katex-display) { margin:.35em 0; }
 .markdown-content :deep(.math-inline) { display:inline-block; max-width:100%; overflow-x:auto; overflow-y:hidden; vertical-align:middle; padding:3px 1px; }
 .markdown-content :deep(.katex) { font-size:1.12em; text-indent:0; }

@@ -1,5 +1,10 @@
 // Older analyses contain prose and bare equations in one paragraph. Only adapt
 // plain text; authored Markdown, links, code and TeX keep their original syntax.
+export function isDisplayEquation(content: string): boolean {
+  const arithmetic = /[+*/×÷^]|[\w)]\s*-|\\(?:frac|times|div)\b/.test(content)
+  return arithmetic && /\d|[=≤≥<>≈]|\\(?:le|ge|leq|geq|approx)\b/.test(content)
+}
+
 export function formatAnalysisText(content: string): string {
   if (/[`$\\]|\*\*|__|\[[^\n]*\]|https?:\/\/|^\s{0,3}(?:#{1,6}\s|>\s|[-*+]\s|\d+[.)]\s)|\|.*\|/m.test(content)) return content
 

@@ -10,29 +10,29 @@ defineProps<{ analysis: NonNullable<Question['analysis']> }>()
   <div class="question-analysis-content">
     <section class="analysis-section" aria-label="题目思路">
       <h3>先看懂这道题</h3>
-      <MarkdownContent :content="formatAnalysisText(analysis.analysis)" />
+      <MarkdownContent display-equations :content="formatAnalysisText(analysis.analysis)" />
     </section>
     <section class="analysis-section" aria-label="解题步骤">
       <h3>一步步来</h3>
       <ol class="solution-steps">
         <li v-for="(step, index) in analysis.solutionSteps" :key="index">
-          <MarkdownContent :content="formatAnalysisText(step)" />
+          <MarkdownContent display-equations :content="formatAnalysisText(step)" />
         </li>
       </ol>
     </section>
     <section class="analysis-section" aria-label="答案核对">
       <h3>答案核对</h3>
-      <MarkdownContent :content="formatAnalysisText(analysis.correctAnswerExplanation)" />
+      <MarkdownContent display-equations :content="formatAnalysisText(analysis.correctAnswerExplanation)" />
     </section>
     <section class="analysis-section" aria-label="快速方法">
       <h3>考场上怎么做更快</h3>
-      <MarkdownContent :content="formatAnalysisText(analysis.quickMethod)" />
+      <MarkdownContent display-equations :content="formatAnalysisText(analysis.quickMethod)" />
     </section>
     <section v-if="analysis.pitfalls.length" class="analysis-section" aria-label="易错点">
       <h3>容易踩的坑</h3>
       <ul class="analysis-pitfalls">
         <li v-for="(pitfall, index) in analysis.pitfalls" :key="index">
-          <MarkdownContent :content="formatAnalysisText(pitfall)" />
+          <MarkdownContent display-equations :content="formatAnalysisText(pitfall)" />
         </li>
       </ul>
     </section>

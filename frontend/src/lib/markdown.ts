@@ -2,17 +2,19 @@ import MarkdownIt from 'markdown-it'
 import { tex } from '@mdit/plugin-tex'
 import katex from 'katex'
 import DOMPurify from 'dompurify'
+import { isDisplayEquation } from './analysisText'
 
 const markdown = new MarkdownIt({ html: false, breaks: true, linkify: true })
 
 markdown.use(tex, {
   delimiters: 'all',
   mathFence: true,
-  render(content: string, displayMode: boolean) {
+  render(content: string, displayMode: boolean, env: Record<string, unknown>) {
+    const separateEquation = !displayMode && env?.displayEquations === true && isDisplayEquation(content)
     let formula: string
     try {
       formula = katex.renderToString(content, {
-        displayMode, output: 'htmlAndMathml', trust: false, strict: 'ignore',
+        displayMode: displayMode || !!separateEquation, output: 'htmlAndMathml', trust: false, strict: 'ignore',
         throwOnError: true, maxExpand: 1000, maxSize: 10,
       })
     } catch {
@@ -20,9 +22,21 @@ markdown.use(tex, {
     }
     return displayMode
       ? '<div class="math-block" tabindex="0" role="region" aria-label="公式">' + formula + '</div>\n'
+      : separateEquation
+      ? '<span class="math-block math-equation" tabindex="0" role="region" aria-label="公式">' + formula + '</span>'
       : '<span class="math-inline">' + formula + '</span>'
   },
 })
+
+// Use parsed math tokens so code fences, links and TeX source stay untouched.
+const renderInlineMath = markdown.renderer.rules.math_inline!
+markdown.renderer.rules.math_inline = (tokens, index, options, env, self) => {
+  if (env?.displayEquations && isDisplayEquation(tokens[index]!.content)) {
+    const next = tokens[index + 1]
+    if (next?.type === 'text') next.content = next.content.replace(/^[，。；、,;]\s*/, '')
+  }
+  return renderInlineMath(tokens, index, options, env, self)
+}
 
 const validateLink = markdown.validateLink.bind(markdown)
 markdown.validateLink = url => validateLink(url) && /^(https?:\/\/|mailto:|\/(?!\/)|#)/i.test(url)
@@ -42,9 +56,9 @@ for (const rule of ['fence', 'code_block']) {
     renderCode(tokens, index, options, env, self).replace('<pre>', '<pre tabindex="0" aria-label="代码块">')
 }
 
-export function renderMarkdown(content: string): string {
+export function renderMarkdown(content: string, options: { displayEquations?: boolean } = {}): string {
   // Sanitize after all plugins; model responses and saved history are untrusted.
-  return DOMPurify.sanitize(markdown.render(content), {
+  return DOMPurify.sanitize(markdown.render(content, options), {
     USE_PROFILES: { html: true, mathMl: true },
     ADD_ATTR: ['target'],
     FORBID_TAGS: ['img', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'video', 'audio'],

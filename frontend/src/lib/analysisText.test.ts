@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { formatAnalysisText } from './analysisText'
+import { formatAnalysisText, isDisplayEquation } from './analysisText'
+
+describe('calculation display without rewriting Markdown', () => {
+  it.each(['P=1000x+1700y', '2x+5y\\le200', 'x=400/7\\approx57.14', 'x\\le(200-85)/2=57.5', '57\\times1000+17\\times1700=85900', '\\frac{20}{100}\\times100\\%=20\\%', '2\\times57+5\\times17', 'P=ax+by'])('displays a calculation on its own line: %s', equation => {
+    expect(isDisplayEquation(equation)).toBe(true)
+  })
+  it.each(['x', 'y', 'x,y', 'x=57,y=17', 'y\\ge18', 'x\\approx57.14'])('keeps short variables and references inline: %s', reference => {
+    expect(isDisplayEquation(reference)).toBe(false)
+  })
+})
 
 describe('legacy analysis formatting', () => {
   it('separates explanations and complete equations without changing values', () => {
